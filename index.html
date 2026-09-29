@@ -323,6 +323,8 @@
   .gray{ color:#595959; font-weight:700; }
   .pt td.line{ line-height:2; }
   .pt u{ text-decoration:none; border-bottom:1px solid #000; padding:0 .3em; }
+  .dtable tr.demo td{ background:#FFFBEA; }
+  .demotag{ display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#F5C400; color:#1d1d1f; font-size:11px; font-weight:600; vertical-align:middle; }
 
   /* ── 배포본 추가 ── */
   .navr{ display:flex; align-items:center; gap:12px; }
@@ -1127,6 +1129,16 @@ const dsel=$("#dash-class");
 for(let i=1;i<=CLASS_COUNT;i++){ const o=document.createElement("option"); o.value=i+"반"; o.textContent=i+"반"; dsel.appendChild(o); }
 dsel.addEventListener("change",loadDash);
 $("#dash-refresh").addEventListener("click",()=>loadDash().then(pull));
+/* 교사 화면 기본 예시 — 시트에 저장되지 않고, 삭제·초기화·통계에서 빠진다 */
+const DEMO={ demo:true, key:"__demo", name:"예시 학생 (김하늘)", progress:"9/9", chosen:"화학·소재", seenCount:12, history:"화학·소재 (예시 기록)", last:"예시 기록",
+  wbObj:{ 1:{ places:[0,2], placeEtc:"", mission:1, mission3:"",
+    q1:"1일차 저녁 7시쯤 한강공원 산책로 약 500m 구간에서 모둠 친구 3명과 쓰레기를 주웠다. 모은 쓰레기 가운데 페트병이 12개로 가장 많았고, 그중 9개는 라벨이 붙은 채 버려져 있었다.",
+    q2:"이 분야에서는 버려진 뒤까지 생각한 소재 설계가 중요할 것 같다. 라벨이 단단히 붙어 있으면 분리배출이 어렵다는 것을 보고, 처음부터 떼기 쉬운 접착제나 한 가지 재질로 만든 병이 있는지 궁금해졌다.",
+    feel:[0], reason:"라벨이 붙은 병 9개를 직접 떼어 보니 3개는 손으로 떨어지지 않았다. 접착제의 작은 차이가 재활용 여부를 바꾼다는 점이 생각보다 재미있었다.",
+    q32pick:"A", q32:"[근거] 주운 쓰레기 중 페트병이 12개로 가장 많았고, 그중 9개에 라벨이 붙어 있었다.\n[생각] 라벨과 병의 재질이 달라 함께 녹이면 품질이 떨어지고, 접착제가 강해서 사람들이 떼지 않고 버리기 때문인 것 같다.\n[제안] 소재 연구원이라면 물에 닿으면 저절로 떨어지는 접착제를 쓰거나, 라벨 없이 병에 글씨를 새기는 방식으로 바꾸겠다.\n[한계] 새 접착제나 각인 설비에는 비용이 들어 음료 가격이 오를 수 있다.",
+    q33q:"물에 닿으면 떨어지는 라벨 접착제는 어떤 원리로 만들어질까?", q33m:[0,2], kw:["수분리 접착제","무라벨 페트병","페트병 재활용 공정"],
+    line:["한강공원","라벨이 붙은 채 버려진 페트병","라벨 접착제와 재활용의 관계","화학 시간에 고분자 접착제의 원리를 질문해 보는 것"],
+    checks:[true,true,true] } } };
 let dashSeq=0, DASH=[];
 async function loadDash(){
   const my=++dashSeq, cls=dsel.value;
@@ -1135,26 +1147,28 @@ async function loadDash(){
     const r=await postJSON({type:"teacherList",pass:S.pass,class:cls});
     if(my!==dashSeq) return;
     if(!r.ok) throw 0;
-    DASH=(r.rows||[]).map(x=>{ try{ x.wbObj=x.wb?JSON.parse(x.wb):{}; }catch(e){ x.wbObj={}; } return x; });
-    $("#dash-note").textContent=cls+" · "+DASH.length+"명 접속 · "+DASH.filter(x=>x.chosen).length+"명 분야 선택";
-    const cnt={}; DASH.forEach(x=>{ if(x.chosen) cnt[x.chosen]=(cnt[x.chosen]||0)+1; });
+    const real=(r.rows||[]).map(x=>{ try{ x.wbObj=x.wb?JSON.parse(x.wb):{}; }catch(e){ x.wbObj={}; } return x; });
+    DASH=[DEMO].concat(real);
+    $("#dash-note").textContent=cls+" · "+real.length+"명 접속 · "+real.filter(x=>x.chosen).length+"명 분야 선택";
+    const cnt={}; real.forEach(x=>{ if(x.chosen) cnt[x.chosen]=(cnt[x.chosen]||0)+1; });
     $("#dash-sum").innerHTML=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>'<span class="chip">'+esc(k)+' <b>'+cnt[k]+'명</b></span>').join("")||'<span class="cap muted">아직 분야를 고른 학생이 없어요.</span>';
     $("#dash-body").innerHTML = DASH.length ? DASH.map((x,i)=>{
       const p=/^(\d+)\/(\d+)$/.exec(x.progress||""); const pct=p?Math.round(p[1]/p[2]*100):0;
-      return '<tr data-i="'+i+'"><td><input type="checkbox" class="dsel" data-i="'+i+'"></td><td><button class="namebtn" data-i="'+i+'">'+esc(x.name)+'</button></td>'
+      return '<tr data-i="'+i+'"'+(x.demo?' class="demo"':'')+'><td><input type="checkbox" class="dsel" data-i="'+i+'"></td><td><button class="namebtn" data-i="'+i+'">'+esc(x.name)+'</button>'+(x.demo?' <span class="demotag">예시</span>':'')+'</td>'
         +'<td><div class="pbar"><i style="width:'+pct+'%"></i></div><span class="small">'+(p?p[1]+"/"+p[2]+" ("+pct+"%)":"-")+'</span></td>'
         +'<td>'+(x.chosen?esc(x.chosen):'<span class="muted">아직</span>')+'</td><td>'+x.seenCount+'개</td><td class="small">'+esc(x.history||"")+'</td><td class="small nowrap">'+esc(x.last||"")+'</td></tr>'; }).join("")
-      : '<tr><td colspan="7" class="muted">아직 접속한 학생이 없어요.</td></tr>';
+      : '';
+    if(!real.length) $("#dash-body").insertAdjacentHTML("beforeend",'<tr><td colspan="7" class="muted">아직 접속한 학생이 없어요.</td></tr>');
     $$(".namebtn").forEach(b=>b.onclick=()=>openViewer(DASH[+b.dataset.i]));
   }catch(e){
     if(my!==dashSeq) return;
     $("#dash-body").innerHTML='<tr><td colspan="7" class="muted">불러오지 못했어요. 앱스 스크립트 배포가 ‘모든 사용자’ 접근인지 확인해 주세요.</td></tr>';
   }
 }
-$("#dash-all").addEventListener("change",e=>$$(".dsel").forEach(c=>c.checked=e.target.checked));
+$("#dash-all").addEventListener("change",e=>$$(".dsel").forEach(c=>{ if(!DASH[+c.dataset.i].demo) c.checked=e.target.checked; }));
 const selected=()=>$$(".dsel").filter(c=>c.checked).map(c=>DASH[+c.dataset.i]);
 $("#dash-del").addEventListener("click",async()=>{
-  const sel=selected(); if(!sel.length){ toast("삭제할 학생을 먼저 체크해 주세요."); return; }
+  const sel=selected().filter(x=>!x.demo); if(!sel.length){ toast(selected().length?"예시 기록은 지워지지 않아요.":"삭제할 학생을 먼저 체크해 주세요."); return; }
   if(!await alertBox("선택 학생 기록 삭제",sel.map(x=>x.name).join(", ")+" — "+sel.length+"명의 기록과 비밀번호를 지워요. 되돌릴 수 없어요.",{confirm:true,okText:"삭제"})) return;
   try{ const r=await postJSON({type:"teacherDelete",pass:S.pass,class:dsel.value,keys:sel.map(x=>x.key)}); if(!r.ok) throw 0; toast(r.deleted+"명 삭제했어요."); loadDash(); }
   catch(e){ toast("삭제하지 못했어요."); }
@@ -1189,7 +1203,7 @@ function vPages(w,f){
 }
 function drawViewer(){
   const x=VW.x, f=F(VW.n), w=(x.wbObj||{})[VW.n];
-  $("#v-kick").textContent=x.name; $("#v-name").textContent=fieldTitle(f);
+  $("#v-kick").textContent=x.name+(x.demo?" · 선생님용 예시 기록":""); $("#v-name").textContent=fieldTitle(f);
   const others=wbFieldsOf(x);
   const list=[...new Set([VW.n].concat(others))];
   $("#v-fields").innerHTML = list.length>1 ? list.map(n=>'<button class="chip'+(n===VW.n?' on':'')+'" data-n="'+n+'">'+esc(fieldLabel(F(n)))+(n===FN(x.chosen).n?' (현재)':'')+'</button>').join("") : "";
