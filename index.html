@@ -683,7 +683,7 @@ const CLASS_COUNT = 10;
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const Q = new URLSearchParams(location.search);
 const GAS_URL = (LOCAL && Q.get("gas")) || GAS_URL_DEFAULT;
-const TEACHER_LINK = Q.has("t");
+const TEACHER_LINK = Q.has("t") || Q.has("T");
 
 const S = { user:null, pw:"", teacher:false, pass:"", limit:2, undLock:true, showSalary:false, field:null, chosen:null, seen:{}, confirmed:false, wb:{}, step:0 };
 const T = { run:false, remain:0, end:0 };
