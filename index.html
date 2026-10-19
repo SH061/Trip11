@@ -683,7 +683,7 @@ const CLASS_COUNT = 10;
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const Q = new URLSearchParams(location.search);
 const GAS_URL = (LOCAL && Q.get("gas")) || GAS_URL_DEFAULT;
-const TEACHER_LINK = Q.has("t") || Q.has("T");
+const TEACHER_LINK = Q.has("t");
 
 const S = { user:null, pw:"", teacher:false, pass:"", limit:2, undLock:true, showSalary:false, field:null, chosen:null, seen:{}, confirmed:false, wb:{}, step:0 };
 const T = { run:false, remain:0, end:0 };
@@ -1153,7 +1153,11 @@ async function loadDash(){
     const cnt={}; real.forEach(x=>{ if(x.chosen) cnt[x.chosen]=(cnt[x.chosen]||0)+1; });
     $("#dash-sum").innerHTML=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>'<span class="chip">'+esc(k)+' <b>'+cnt[k]+'명</b></span>').join("")||'<span class="cap muted">아직 분야를 고른 학생이 없어요.</span>';
     $("#dash-body").innerHTML = DASH.length ? DASH.map((x,i)=>{
-      const p=/^(\d+)\/(\d+)$/.exec(x.progress||""); const pct=p?Math.round(p[1]/p[2]*100):0;
+      /* 저장된 진행률 문자열 대신, 실제 저장된 워크북 내용으로 다시 계산한다 */
+      let p=/^(\d+)\/(\d+)$/.exec(x.progress||"");
+      try{ const cf=x.chosen?FN(x.chosen):null, w=cf&&x.wbObj&&x.wbObj[cf.n];
+        if(w){ const d=STEPS.filter(s=>stepDone(w,s.k)).length; p=[null,String(d),String(STEPS.length)]; } }catch(e){}
+      const pct=p?Math.round(p[1]/p[2]*100):0;
       return '<tr data-i="'+i+'"'+(x.demo?' class="demo"':'')+'><td><input type="checkbox" class="dsel" data-i="'+i+'"></td><td><button class="namebtn" data-i="'+i+'">'+esc(x.name)+'</button>'+(x.demo?' <span class="demotag">예시</span>':'')+'</td>'
         +'<td><div class="pbar"><i style="width:'+pct+'%"></i></div><span class="small">'+(p?p[1]+"/"+p[2]+" ("+pct+"%)":"-")+'</span></td>'
         +'<td>'+(x.chosen?esc(x.chosen):'<span class="muted">아직</span>')+'</td><td>'+x.seenCount+'개</td><td class="small">'+esc(x.history||"")+'</td><td class="small nowrap">'+esc(x.last||"")+'</td></tr>'; }).join("")
